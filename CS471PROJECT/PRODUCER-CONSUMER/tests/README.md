@@ -2,18 +2,18 @@
 
 This directory contains unit tests for the Producer-Consumer project using the [Catch2](https://github.com/catchorg/Catch2) testing framework.
 
-## How Tests Work with CMake
+## How Tests Work
 
-The [CMakeLists.txt](CMakeLists.txt) in this directory automatically:
+The build system automatically:
 
-1. **Discovers all test files** using `GLOB_RECURSE` - any `.cpp` file in this directory
+1. **Discovers all test files** - any `.cpp` file in this directory
 2. **Creates a test executable** named `producer_consumer_tests`
 3. **Links the executable** to:
    - `producer_consumer::library` (your project code)
    - `Catch2::Catch2WithMain` (test framework with auto-generated main)
-4. **Registers tests with CTest** using `catch_discover_tests()`
+4. **Registers tests** for running with `make test`
 
-No manual configuration needed - just add `.cpp` files and rebuild!
+No manual configuration needed - just add `.cpp` files and run `make`!
 
 ## Writing Your First Test
 
@@ -224,26 +224,23 @@ TEST_CASE("Multiple producers and consumers", "[threading][integration]") {
 
 ## Building and Running Tests
 
-### Build Tests
+### Build and Run Tests
 
 From the repository root:
 
 ```bash
-cd CS471PROJECT
-cmake -S . -B build
-cmake --build build
+make test-producer      # Build and run PRODUCER-CONSUMER tests
+make test-verbose       # Run all tests with verbose output
+make test               # Run all tests (both projects)
 ```
 
 The test executable will be at: `CS471PROJECT/PRODUCER-CONSUMER/producer_consumer_tests`
 
-### Run All Tests
+### Run Tests Directly
+
+After building, you can run the test executable directly:
 
 ```bash
-# Using CTest
-cd CS471PROJECT/build
-ctest -V
-
-# Or run directly
 cd CS471PROJECT/PRODUCER-CONSUMER
 ./producer_consumer_tests
 ```
@@ -362,45 +359,15 @@ TEST_CASE("Mutex protects critical section", "[mutex][threading]") {
 }
 ```
 
-## CMakeLists.txt Explanation
+## How It Works
 
-The [CMakeLists.txt](CMakeLists.txt) in this directory does the following:
+The build system automatically:
+- Discovers all `.cpp` files in this directory
+- Compiles them into the `producer_consumer_tests` executable
+- Links with Catch2 testing framework and your library code
+- Provides a `main()` function automatically (via `Catch2WithMain`)
 
-```cmake
-include(CTest)                          # Enable CTest integration
-
-file(GLOB_RECURSE TEST_SOURCES          # Find all .cpp files
-    CONFIGURE_DEPENDS
-    ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
-)
-
-add_executable(producer_consumer_tests) # Create test executable
-
-target_sources(                         # Add test files to executable
-    producer_consumer_tests
-    PRIVATE
-    ${TEST_SOURCES}
-)
-
-target_link_libraries(producer_consumer_tests
-    PRIVATE producer_consumer::library  # Link your library
-    PRIVATE Catch2::Catch2WithMain      # Link Catch2 (with main)
-)
-
-target_compile_features(producer_consumer_tests PRIVATE cxx_std_20)
-
-include(Catch)                          # Include Catch2 CMake module
-
-catch_discover_tests(producer_consumer_tests)  # Auto-discover tests for CTest
-```
-
-### CONFIGURE_DEPENDS
-
-Tells CMake to recheck for new files on each build. If you add a new test file, just run `cmake --build build` - no need to reconfigure.
-
-### Catch2::Catch2WithMain
-
-This provides a `main()` function automatically, so you don't need to write one. If you need a custom main (for example, to initialize global state), use `Catch2::Catch2` instead and provide your own main.
+Just add new test files and run `make` - no manual configuration needed!
 
 ## Best Practices
 
