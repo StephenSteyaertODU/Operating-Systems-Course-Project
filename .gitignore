@@ -37,5 +37,24 @@
 *.out
 *.app
 
+# Project executables (without extensions)
+CS471PROJECT/CPUSCHED/cpu_sched
+CS471PROJECT/CPUSCHED/cpu_sched_tests
+CS471PROJECT/PRODUCER-CONSUMER/producer_consumer
+CS471PROJECT/PRODUCER-CONSUMER/producer_consumer_tests
+
 # debug information files
 *.dwo
+
+# CMake build directories
+build/
+**/build/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+compile_commands.json
+CTestTestfile.cmake
+_deps/
+.cache

@@ -7,7 +7,7 @@ target_sources(
 )
 
 target_link_libraries(
-    smplscript
+    cpu_sched
     PRIVATE 
     cpu_sched::library
 )
