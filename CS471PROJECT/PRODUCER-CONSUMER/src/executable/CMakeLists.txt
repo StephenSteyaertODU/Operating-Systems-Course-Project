@@ -7,7 +7,7 @@ target_sources(
 )
 
 target_link_libraries(
-    smplscript
+    producer_consumer
     PRIVATE 
     producer_consumer::library
 )
