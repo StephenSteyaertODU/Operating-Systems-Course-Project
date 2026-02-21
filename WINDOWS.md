@@ -50,3 +50,18 @@ To have a seamless C++ development experience, it is highly recommended to use V
 - Open VS Code and install the WSL extension by Microsoft from the Visual Studio Marketplace (extension ID: ms-vscode-remote.remote-wsl).
 
 - You can then use the code . command in your Ubuntu terminal to open a project folder in VS Code, which will automatically connect to the remote WSL environment and provide full editing and debugging support.
+
+---
+
+# Install Git
+
+```bash
+sudo apt install git -y
+```
+
+Configure Git
+
+```bash
+git config --global user.name "Your Name"
+git config --global user.email "youremail@domain.com"
+```
