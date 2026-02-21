@@ -4,6 +4,7 @@ This repository contains implementations for CS 471 Operating Systems course pro
 
 ## Prerequisites
 
+- **Make**
 - **CMake** (version 3.16 or higher)
 - **C++20 compatible compiler**
   - GCC 10+ or Clang 10+ on Linux/macOS
@@ -30,55 +31,45 @@ course-project/
 
 ## Building
 
-### Build All Projects
-
-From the repository root:
-
 ```bash
-cd CS471PROJECT
-cmake -S . -B build
-cmake --build build
+# Build everything
+make
+
+# Build specific projects
+make cpu-sched
+make producer-consumer
+
+# Clean all build artifacts
+make clean
+
+# Clean and rebuild
+make rebuild
+
+# See all available commands
+make help
 ```
 
-This will:
+The Makefile will:
+- Automatically configure CMake on first build
 - Fetch Catch2 testing framework automatically
 - Build both CPUSCHED and PRODUCER-CONSUMER projects
 - Place executables in their respective project folders
 
-### Build Individual Projects
-
-To build only one project:
-
-```bash
-cd CS471PROJECT
-cmake -S . -B build
-cmake --build build --target cpu_sched              # CPUSCHED executable
-cmake --build build --target producer_consumer      # PRODUCER-CONSUMER executable
-```
-
-### Clean Build
-
-To start fresh:
-
-```bash
-cd CS471PROJECT
-rm -rf build
-cmake -S . -B build
-cmake --build build
-```
-
 ## Running
 
-After building, executables are located in each project's folder:
-
-### CPU Scheduler
 ```bash
-cd CS471PROJECT/CPUSCHED
-./cpu_sched [arguments]
+make run-cpu          # Build and run CPUSCHED
+make run-producer     # Build and run PRODUCER-CONSUMER
 ```
 
-### Producer-Consumer
+Or run executables directly (after building):
+
 ```bash
+# CPU Scheduler
+cd CS471PROJECT/CPUSCHED
+./cpu_sched [arguments]
+
+# Producer-Consumer
 cd CS471PROJECT/PRODUCER-CONSUMER
 ./producer_consumer [arguments]
 ```
@@ -87,11 +78,11 @@ See individual project READMEs for specific usage instructions and sample inputs
 
 ## Testing
 
-### Run All Tests
-
 ```bash
-cd CS471PROJECT/build
-ctest
+make test               # Run all tests
+make test-verbose       # Run all tests with verbose output
+make test-cpu           # Run CPUSCHED tests only
+make test-producer      # Run PRODUCER-CONSUMER tests only
 ```
 
 Or run test executables directly:
@@ -104,29 +95,11 @@ cd CS471PROJECT/PRODUCER-CONSUMER
 ./producer_consumer_tests
 ```
 
-### Run Specific Tests
-
-```bash
-cd CS471PROJECT/build
-ctest -R cpu_sched        # Run only CPUSCHED tests
-ctest -R producer         # Run only PRODUCER-CONSUMER tests
-ctest -V                  # Verbose output
-```
-
 ## Development
-
-### IDE Setup
-
-After building, `compile_commands.json` is generated in the build directory for IDE integration:
-
-```bash
-# Link to root for IDE discovery
-ln -s CS471PROJECT/build/compile_commands.json .
-```
 
 ### Adding New Source Files
 
-Source files are automatically discovered using `GLOB_RECURSE`. Just add `.cpp` files to:
+Source files are automatically discovered. Just add `.cpp` files to:
 - `src/library/` for library code
 - `src/executable/` for main programs
 - `tests/` for test files
@@ -134,15 +107,14 @@ Source files are automatically discovered using `GLOB_RECURSE`. Just add `.cpp` 
 Then rebuild:
 
 ```bash
-cmake --build CS471PROJECT/build
+make
 ```
 
 ## Troubleshooting
 
 ### CMake version error
 ```bash
-cmake --version  # Check your version
-# Upgrade if needed
+cmake --version  # Check your version (needs 3.16+)
 ```
 
 ### Compiler not found
@@ -153,6 +125,5 @@ g++ --version    # or clang++ --version
 
 ### Clean everything
 ```bash
-cd CS471PROJECT
-rm -rf build cpu_sched cpu_sched_tests producer_consumer producer_consumer_tests
+make clean
 ```
