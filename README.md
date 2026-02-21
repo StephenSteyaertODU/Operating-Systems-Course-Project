@@ -11,6 +11,8 @@ This repository contains implementations for CS 471 Operating Systems course pro
   - MSVC 2019+ on Windows
 - **Git** (for cloning and fetching dependencies)
 
+For installation, see [WINDOWS.md](WINDOWS.md)
+
 ## Project Structure
 
 ```
