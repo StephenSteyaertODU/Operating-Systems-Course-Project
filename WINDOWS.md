@@ -65,3 +65,10 @@ Configure Git
 git config --global user.name "Your Name"
 git config --global user.email "youremail@domain.com"
 ```
+
+---
+
+Extensions:
+
+[Click Here](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools-extension-pack) for all of the extensions.
+
