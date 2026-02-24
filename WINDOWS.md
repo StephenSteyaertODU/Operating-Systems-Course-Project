@@ -68,7 +68,7 @@ git config --global user.email "youremail@domain.com"
 
 ---
 
-Extensions:
+# Extensions:
 
 [Click Here](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools-extension-pack) for all of the extensions.
 
