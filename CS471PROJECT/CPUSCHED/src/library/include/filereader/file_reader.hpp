@@ -2,16 +2,17 @@
 
 #include <string>
 #include <vector>
+#include "common/common.hpp"
 
 namespace cpusched {
 
 /**
- * Reads lines from a file.
+ * Reads and parses process data from a file.
  *
- * @param filePath Path to the data file
- * @return Vector of strings, one per line
- * @throws std::runtime_error if file cannot be opened
+ * @param filePath Path to the data file (tab-separated: ArrivalTime, CPUBurstLength)
+ * @return Vector of Process structs with sequential IDs starting from 1
+ * @throws std::runtime_error if file cannot be opened or data format is invalid
  */
-std::vector<std::string> readProcessFile(const std::string& filePath);
+std::vector<Process> readProcessFile(const std::string& filePath);
 
 } // namespace cpusched

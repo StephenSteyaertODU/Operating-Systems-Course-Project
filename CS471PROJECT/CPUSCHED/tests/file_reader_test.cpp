@@ -1,99 +1,132 @@
-// NOTE: These tests will need to be updated when file_reader.cpp is modified
-// to parse the data into Process structs instead of returning raw strings.
-
 #include <catch2/catch_test_macros.hpp>
 #include "common/common.hpp"
 #include <fstream>
 #include <filesystem>
 
-TEST_CASE("readProcessFile reads valid file", "[file_reader]") {
-    // Create a temporary test file
+TEST_CASE("readProcessFile parses valid process data", "[file_reader]") {
     const std::string testFilePath = "test_data.txt";
 
     {
         std::ofstream testFile(testFilePath);
-        testFile << "Line 1\n";
-        testFile << "Line 2\n";
-        testFile << "Line 3\n";
+        testFile << "ArrivalTime\tCPUBurstLength\n";
+        testFile << "10\t22\n";
+        testFile << "68\t12\n";
+        testFile << "98\t34\n";
     }
 
-    // Read the file
-    auto lines = cpusched::readProcessFile(testFilePath);
+    auto processes = cpusched::readProcessFile(testFilePath);
 
-    // Verify
-    REQUIRE(lines.size() == 3);
-    REQUIRE(lines[0] == "Line 1");
-    REQUIRE(lines[1] == "Line 2");
-    REQUIRE(lines[2] == "Line 3");
+    REQUIRE(processes.size() == 3);
 
-    // Cleanup
+    // Check first process
+    REQUIRE(processes[0].id == 1);
+    REQUIRE(processes[0].arrivalTime == 10);
+    REQUIRE(processes[0].burstTime == 22);
+
+    // Check second process
+    REQUIRE(processes[1].id == 2);
+    REQUIRE(processes[1].arrivalTime == 68);
+    REQUIRE(processes[1].burstTime == 12);
+
+    // Check third process
+    REQUIRE(processes[2].id == 3);
+    REQUIRE(processes[2].arrivalTime == 98);
+    REQUIRE(processes[2].burstTime == 34);
+
     std::filesystem::remove(testFilePath);
 }
 
-TEST_CASE("readProcessFile handles empty file", "[file_reader]") {
-    // Create an empty test file
+TEST_CASE("readProcessFile skips header line", "[file_reader]") {
+    const std::string testFilePath = "test_header.txt";
+
+    {
+        std::ofstream testFile(testFilePath);
+        testFile << "ArrivalTime\tCPUBurstLength\n";
+        testFile << "5\t10\n";
+    }
+
+    auto processes = cpusched::readProcessFile(testFilePath);
+
+    REQUIRE(processes.size() == 1);
+    REQUIRE(processes[0].arrivalTime == 5);
+    REQUIRE(processes[0].burstTime == 10);
+
+    std::filesystem::remove(testFilePath);
+}
+
+TEST_CASE("readProcessFile assigns sequential IDs", "[file_reader]") {
+    const std::string testFilePath = "test_ids.txt";
+
+    {
+        std::ofstream testFile(testFilePath);
+        testFile << "ArrivalTime\tCPUBurstLength\n";
+        testFile << "1\t5\n";
+        testFile << "2\t3\n";
+        testFile << "3\t8\n";
+        testFile << "4\t6\n";
+    }
+
+    auto processes = cpusched::readProcessFile(testFilePath);
+
+    REQUIRE(processes.size() == 4);
+    for (size_t i = 0; i < processes.size(); ++i) {
+        REQUIRE(processes[i].id == static_cast<pid_t>(i + 1));
+    }
+
+    std::filesystem::remove(testFilePath);
+}
+
+TEST_CASE("readProcessFile handles empty file with only header", "[file_reader]") {
     const std::string testFilePath = "test_empty.txt";
 
     {
         std::ofstream testFile(testFilePath);
-        // Don't write anything
+        testFile << "ArrivalTime\tCPUBurstLength\n";
     }
 
-    // Read the file
-    auto lines = cpusched::readProcessFile(testFilePath);
+    auto processes = cpusched::readProcessFile(testFilePath);
 
-    // Verify it's empty
-    REQUIRE(lines.empty());
+    REQUIRE(processes.empty());
 
-    // Cleanup
     std::filesystem::remove(testFilePath);
 }
 
 TEST_CASE("readProcessFile throws exception for non-existent file", "[file_reader]") {
     const std::string nonExistentFile = "this_file_does_not_exist_12345.txt";
 
-    // Verify it throws an exception
     REQUIRE_THROWS_AS(cpusched::readProcessFile(nonExistentFile), std::runtime_error);
 }
 
-TEST_CASE("readProcessFile handles file with trailing newline", "[file_reader]") {
-    const std::string testFilePath = "test_trailing.txt";
+TEST_CASE("readProcessFile throws exception for invalid data format", "[file_reader]") {
+    const std::string testFilePath = "test_invalid.txt";
 
     {
         std::ofstream testFile(testFilePath);
-        testFile << "Line 1\n";
-        testFile << "Line 2\n";
-        testFile << "Line 3\n\n";  // Extra newline at end
+        testFile << "ArrivalTime\tCPUBurstLength\n";
+        testFile << "not_a_number\t50\n";
     }
 
-    auto lines = cpusched::readProcessFile(testFilePath);
+    REQUIRE_THROWS_AS(cpusched::readProcessFile(testFilePath), std::runtime_error);
 
-    // Should have 4 lines (including the empty line from trailing newline)
-    REQUIRE(lines.size() == 4);
-    REQUIRE(lines[0] == "Line 1");
-    REQUIRE(lines[1] == "Line 2");
-    REQUIRE(lines[2] == "Line 3");
-    REQUIRE(lines[3] == "");
-
-    // Cleanup
     std::filesystem::remove(testFilePath);
 }
 
-TEST_CASE("readProcessFile handles file with tabs and spaces", "[file_reader]") {
-    const std::string testFilePath = "test_whitespace.txt";
+TEST_CASE("readProcessFile skips empty lines", "[file_reader]") {
+    const std::string testFilePath = "test_empty_lines.txt";
 
     {
         std::ofstream testFile(testFilePath);
-        testFile << "Column1\tColumn2\tColumn3\n";
-        testFile << "10     \t20     \t30\n";
+        testFile << "ArrivalTime\tCPUBurstLength\n";
+        testFile << "10\t20\n";
+        testFile << "\n";
+        testFile << "30\t40\n";
     }
 
-    auto lines = cpusched::readProcessFile(testFilePath);
+    auto processes = cpusched::readProcessFile(testFilePath);
 
-    REQUIRE(lines.size() == 2);
-    REQUIRE(lines[0] == "Column1\tColumn2\tColumn3");
-    REQUIRE(lines[1] == "10     \t20     \t30");
+    REQUIRE(processes.size() == 2);
+    REQUIRE(processes[0].arrivalTime == 10);
+    REQUIRE(processes[1].arrivalTime == 30);
 
-    // Cleanup
     std::filesystem::remove(testFilePath);
 }
