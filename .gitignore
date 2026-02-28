@@ -38,10 +38,10 @@
 *.app
 
 # Project executables (without extensions)
-CS471PROJECT/CPUSCHED/cpu_sched
-CS471PROJECT/CPUSCHED/cpu_sched_tests
-CS471PROJECT/PRODUCER-CONSUMER/producer_consumer
-CS471PROJECT/PRODUCER-CONSUMER/producer_consumer_tests
+cpu_sched
+cpu_sched_tests
+producer_consumer
+producer_consumer_tests
 
 # debug information files
 *.dwo

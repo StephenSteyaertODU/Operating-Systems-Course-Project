@@ -1,0 +1,165 @@
+name: Create Release
+
+# To activate this workflow:
+# 1. Rename this file from release.yml.example to release.yml
+# 2. Push a git tag (e.g., git tag v1.0.0 && git push origin v1.0.0)
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags like v1.0.0, v1.1.0, etc.
+
+jobs:
+  build-and-release:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up CMake
+      uses: jwlawson/actions-setup-cmake@v2
+      with:
+        cmake-version: '3.16'
+
+    - name: Install dependencies (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential
+
+    - name: Build project
+      run: |
+        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+        cmake --build build
+
+    - name: Run tests
+      run: |
+        cd build
+        ctest --output-on-failure
+
+    - name: Package artifacts (Unix)
+      if: runner.os != 'Windows'
+      run: |
+        mkdir -p release-artifacts
+
+        # Copy executables
+        cp CPUSCHED/cpu_sched release-artifacts/
+        cp CPUSCHED/cpu_sched_tests release-artifacts/
+        cp PRODUCER-CONSUMER/producer_consumer release-artifacts/
+        cp PRODUCER-CONSUMER/producer_consumer_tests release-artifacts/
+
+        # Copy data files
+        mkdir -p release-artifacts/data
+        cp -r CPUSCHED/data/* release-artifacts/data/
+
+        # Copy sample outputs (when they exist)
+        if [ -d "CPUSCHED/output" ]; then
+          mkdir -p release-artifacts/sample-output
+          cp -r CPUSCHED/output/* release-artifacts/sample-output/
+        fi
+
+        # Copy READMEs
+        cp CPUSCHED/README.md release-artifacts/CPUSCHED-README.md
+        cp PRODUCER-CONSUMER/README.md release-artifacts/PRODUCER-CONSUMER-README.md
+        cp README.md release-artifacts/
+
+        # Create tarball
+        tar -czf cs471-project-${{ runner.os }}.tar.gz -C release-artifacts .
+
+    - name: Package artifacts (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        New-Item -ItemType Directory -Force -Path release-artifacts
+
+        # Copy executables (.exe on Windows)
+        Copy-Item CPUSCHED/cpu_sched.exe release-artifacts/
+        Copy-Item CPUSCHED/cpu_sched_tests.exe release-artifacts/
+        Copy-Item PRODUCER-CONSUMER/producer_consumer.exe release-artifacts/
+        Copy-Item PRODUCER-CONSUMER/producer_consumer_tests.exe release-artifacts/
+
+        # Copy data files
+        New-Item -ItemType Directory -Force -Path release-artifacts/data
+        Copy-Item -Recurse CPUSCHED/data/* release-artifacts/data/
+
+        # Copy sample outputs (when they exist)
+        if (Test-Path "CPUSCHED/output") {
+          New-Item -ItemType Directory -Force -Path release-artifacts/sample-output
+          Copy-Item -Recurse CPUSCHED/output/* release-artifacts/sample-output/
+        }
+
+        # Copy READMEs
+        Copy-Item CPUSCHED/README.md release-artifacts/CPUSCHED-README.md
+        Copy-Item PRODUCER-CONSUMER/README.md release-artifacts/PRODUCER-CONSUMER-README.md
+        Copy-Item README.md release-artifacts/
+
+        # Create zip archive
+        Compress-Archive -Path release-artifacts/* -DestinationPath cs471-project-Windows.zip
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          cs471-project-${{ runner.os }}.tar.gz
+          cs471-project-Windows.zip
+        body: |
+          ## CS 471 Operating Systems Course Project
+
+          ### Release ${{ github.ref_name }}
+
+          Built for ${{ runner.os }}
+
+          ### Included Projects:
+          - **CPUSCHED**: CPU Scheduling Algorithms (FIFO, SJF)
+          - **PRODUCER-CONSUMER**: Producer-Consumer Problem
+
+          ### Contents:
+          - Compiled executables (cpu_sched, producer_consumer)
+          - Test executables (cpu_sched_tests, producer_consumer_tests)
+          - Sample input data files
+          - Sample output files (if available)
+          - README documentation
+
+          ### How to Run:
+
+          **Linux/macOS:**
+          ```bash
+          # Extract the archive
+          tar -xzf cs471-project-Linux.tar.gz  # or cs471-project-macOS.tar.gz
+
+          # Run CPU scheduler
+          ./cpu_sched
+
+          # Run Producer-Consumer
+          ./producer_consumer
+
+          # Run tests
+          ./cpu_sched_tests
+          ./producer_consumer_tests
+          ```
+
+          **Windows:**
+          ```powershell
+          # Extract the archive (or use File Explorer)
+          Expand-Archive cs471-project-Windows.zip
+
+          # Run CPU scheduler
+          .\cpu_sched.exe
+
+          # Run Producer-Consumer
+          .\producer_consumer.exe
+
+          # Run tests
+          .\cpu_sched_tests.exe
+          .\producer_consumer_tests.exe
+          ```
+
+          See README.md for detailed instructions.
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

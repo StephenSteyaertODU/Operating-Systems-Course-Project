@@ -1,6 +1,6 @@
 {
-    "cmake.sourceDirectory": "${workspaceFolder}/CS471PROJECT",
-    "cmake.buildDirectory": "${workspaceFolder}/CS471PROJECT/build",
-    "C_Cpp.default.compileCommands": "${workspaceFolder}/CS471PROJECT/build/compile_commands.json",
+    "cmake.sourceDirectory": "${workspaceFolder}",
+    "cmake.buildDirectory": "${workspaceFolder}/build",
+    "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
 }
