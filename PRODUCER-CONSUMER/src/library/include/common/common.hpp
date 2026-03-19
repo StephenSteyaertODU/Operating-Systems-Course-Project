@@ -30,3 +30,5 @@ struct SalesRecord {
     double amount;    ///< Sale amount in USD: $0.50–$999.99
     bool is_sentinel = false; ///< If true, signals the consuming thread to stop
 };
+
+#include "../buffer.hpp"
