@@ -58,3 +58,6 @@ compile_commands.json
 CTestTestfile.cmake
 _deps/
 .cache
+
+# Report
+report_single.txt

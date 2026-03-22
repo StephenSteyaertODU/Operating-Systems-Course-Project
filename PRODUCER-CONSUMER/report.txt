@@ -1,0 +1,1515 @@
+Producer-Consumer Problem — CS471 Report
+=========================================
+
+--- Shared Variables & Synchronization Primitives ---
+
+1. SharedBuffer::buf_  (vector<SalesRecord>)
+   Shared between ALL producer and consumer threads.
+   Protected by: SharedBuffer::mutex_ (std::mutex)
+   File: src/library/buffer.hpp, buffer.cpp
+
+2. SharedBuffer::empty_slots_  (std::counting_semaphore, init = b)
+   Producers acquire() before writing — blocks when buffer is full.
+   Consumers release() after reading — signals a slot is free.
+   File: src/library/buffer.hpp, buffer.cpp
+
+3. SharedBuffer::filled_slots_  (std::counting_semaphore, init = 0)
+   Consumers acquire() before reading — blocks when buffer is empty.
+   Producers release() after writing — signals a record is ready.
+   File: src/library/buffer.hpp, buffer.cpp
+
+4. SharedBuffer::mutex_  (std::mutex)
+   Guards the critical section (head_, tail_, buf_) during each
+   individual produce() and consume() call.
+   File: src/library/buffer.hpp, buffer.cpp
+
+5. total_produced_  (std::atomic<int>, shared across all producers)
+   Each producer atomically claims the next slot via fetch_add().
+   When the claimed slot >= 1000 the producer exits.
+   No mutex needed — std::atomic guarantees sequential consistency.
+   File: src/library/producer.hpp, producer.cpp
+
+6. GlobalStats::mutex_  (std::mutex)
+   Held by each consumer when it finishes: serialises the local-stats
+   print AND the merge into global totals so output never interleaves
+   and the aggregate is updated atomically.
+   File: src/library/stats.hpp
+
+Records use pseudo-random number generators (std::mt19937) seeded
+independently per producer thread via std::random_device.
+
+--- Run Results ---
+
+========================================
+producers=2  consumers=2  buffer=10
+========================================
+
+--- Consumer 2 ---
+  Records processed : 500
+  Sales by store:
+    Store 1 : $121707.26
+    Store 2 : $133163.30
+  Sales by month:
+    Month  1 : $20420.56
+    Month  2 : $24180.13
+    Month  3 : $21702.52
+    Month  4 : $20128.13
+    Month  5 : $16774.54
+    Month  6 : $17811.90
+    Month  7 : $22228.00
+    Month  8 : $25223.68
+    Month  9 : $22918.31
+    Month 10 : $22162.36
+    Month 11 : $21232.08
+    Month 12 : $20088.35
+  Aggregate         : $254870.55
+
+--- Consumer 1 ---
+  Records processed : 500
+  Sales by store:
+    Store 1 : $133769.73
+    Store 2 : $112032.17
+  Sales by month:
+    Month  1 : $24146.15
+    Month  2 : $16660.68
+    Month  3 : $25113.54
+    Month  4 : $12902.71
+    Month  5 : $27219.00
+    Month  6 : $17886.17
+    Month  7 : $23862.62
+    Month  8 : $17620.79
+    Month  9 : $19447.27
+    Month 10 : $22031.95
+    Month 11 : $20639.49
+    Month 12 : $18271.54
+  Aggregate         : $245801.90
+
+=== Global Statistics ===
+Sales by store:
+  Store 1 : $255476.99
+  Store 2 : $245195.46
+Sales by month:
+  Month  1 : $44566.71
+  Month  2 : $40840.81
+  Month  3 : $46816.06
+  Month  4 : $33030.83
+  Month  5 : $43993.54
+  Month  6 : $35698.07
+  Month  7 : $46090.62
+  Month  8 : $42844.47
+  Month  9 : $42365.58
+  Month 10 : $44194.31
+  Month 11 : $41871.57
+  Month 12 : $38359.88
+Grand total : $500672.46
+
+Total simulation time: 12.813s
+
+========================================
+producers=2  consumers=5  buffer=10
+========================================
+
+--- Consumer 4 ---
+  Records processed : 202
+  Sales by store:
+    Store 1 : $50314.60
+    Store 2 : $49058.81
+  Sales by month:
+    Month  1 : $9531.22
+    Month  2 : $7586.78
+    Month  3 : $11201.69
+    Month  4 : $9524.46
+    Month  5 : $6386.55
+    Month  6 : $5376.19
+    Month  7 : $9025.97
+    Month  8 : $11284.60
+    Month  9 : $6390.88
+    Month 10 : $6482.84
+    Month 11 : $6586.66
+    Month 12 : $9995.56
+  Aggregate         : $99373.40
+
+--- Consumer 2 ---
+  Records processed : 202
+  Sales by store:
+    Store 1 : $48506.11
+    Store 2 : $55512.58
+  Sales by month:
+    Month  1 : $11469.61
+    Month  2 : $12093.24
+    Month  3 : $6692.55
+    Month  4 : $8109.33
+    Month  5 : $10736.93
+    Month  6 : $6157.81
+    Month  7 : $8705.66
+    Month  8 : $6398.98
+    Month  9 : $3796.34
+    Month 10 : $10066.89
+    Month 11 : $7988.75
+    Month 12 : $11802.60
+  Aggregate         : $104018.69
+
+--- Consumer 5 ---
+  Records processed : 191
+  Sales by store:
+    Store 1 : $42917.62
+    Store 2 : $53998.33
+  Sales by month:
+    Month  1 : $7865.88
+    Month  2 : $7771.87
+    Month  3 : $9267.37
+    Month  4 : $12273.48
+    Month  5 : $6406.44
+    Month  6 : $7343.52
+    Month  7 : $8721.59
+    Month  8 : $5214.31
+    Month  9 : $7511.45
+    Month 10 : $7259.16
+    Month 11 : $9741.83
+    Month 12 : $7539.05
+  Aggregate         : $96915.95
+
+--- Consumer 1 ---
+  Records processed : 201
+  Sales by store:
+    Store 1 : $44861.43
+    Store 2 : $54580.39
+  Sales by month:
+    Month  1 : $9065.03
+    Month  2 : $13483.27
+    Month  3 : $9383.55
+    Month  4 : $9439.89
+    Month  5 : $6587.34
+    Month  6 : $8588.02
+    Month  7 : $9379.21
+    Month  8 : $3594.96
+    Month  9 : $6916.90
+    Month 10 : $8610.41
+    Month 11 : $6248.51
+    Month 12 : $8144.73
+  Aggregate         : $99441.82
+
+--- Consumer 3 ---
+  Records processed : 204
+  Sales by store:
+    Store 1 : $51818.82
+    Store 2 : $43821.63
+  Sales by month:
+    Month  1 : $6410.95
+    Month  2 : $9213.70
+    Month  3 : $8253.10
+    Month  4 : $9992.17
+    Month  5 : $5633.27
+    Month  6 : $9121.05
+    Month  7 : $7690.01
+    Month  8 : $6776.67
+    Month  9 : $9238.05
+    Month 10 : $10157.92
+    Month 11 : $6756.15
+    Month 12 : $6397.41
+  Aggregate         : $95640.45
+
+=== Global Statistics ===
+Sales by store:
+  Store 1 : $238418.57
+  Store 2 : $256971.73
+Sales by month:
+  Month  1 : $44342.68
+  Month  2 : $50148.86
+  Month  3 : $44798.26
+  Month  4 : $49339.33
+  Month  5 : $35750.53
+  Month  6 : $36586.59
+  Month  7 : $43522.44
+  Month  8 : $33269.51
+  Month  9 : $33853.63
+  Month 10 : $42577.23
+  Month 11 : $37321.91
+  Month 12 : $43879.35
+Grand total : $495390.31
+
+Total simulation time: 13.038s
+
+========================================
+producers=2  consumers=10  buffer=10
+========================================
+
+--- Consumer 7 ---
+  Records processed : 114
+  Sales by store:
+    Store 1 : $29727.02
+    Store 2 : $25823.88
+  Sales by month:
+    Month  1 : $6997.94
+    Month  2 : $5208.66
+    Month  3 : $4924.45
+    Month  4 : $1991.33
+    Month  5 : $5651.51
+    Month  6 : $6581.53
+    Month  7 : $5705.90
+    Month  8 : $5712.16
+    Month  9 : $3360.67
+    Month 10 : $3027.39
+    Month 11 : $3906.90
+    Month 12 : $2482.45
+  Aggregate         : $55550.89
+
+--- Consumer 1 ---
+  Records processed : 82
+  Sales by store:
+    Store 1 : $20730.06
+    Store 2 : $21778.20
+  Sales by month:
+    Month  1 : $889.93
+    Month  2 : $5400.78
+    Month  3 : $3445.57
+    Month  4 : $4134.42
+    Month  5 : $3298.50
+    Month  6 : $3096.47
+    Month  7 : $2649.47
+    Month  8 : $2157.57
+    Month  9 : $8072.02
+    Month 10 : $4254.22
+    Month 11 : $2887.72
+    Month 12 : $2221.60
+  Aggregate         : $42508.26
+
+--- Consumer 4 ---
+  Records processed : 102
+  Sales by store:
+    Store 1 : $21378.08
+    Store 2 : $26469.54
+  Sales by month:
+    Month  1 : $4708.61
+    Month  2 : $4237.06
+    Month  3 : $864.91
+    Month  4 : $1823.30
+    Month  5 : $5266.02
+    Month  6 : $3392.23
+    Month  7 : $2069.63
+    Month  8 : $6463.70
+    Month  9 : $7133.76
+    Month 10 : $3012.21
+    Month 11 : $4381.62
+    Month 12 : $4494.55
+  Aggregate         : $47847.62
+
+--- Consumer 8 ---
+  Records processed : 80
+  Sales by store:
+    Store 1 : $17015.61
+    Store 2 : $24029.77
+  Sales by month:
+    Month  1 : $1918.41
+    Month  2 : $4834.27
+    Month  3 : $3122.74
+    Month  4 : $3461.41
+    Month  5 : $3042.77
+    Month  6 : $2611.14
+    Month  7 : $3119.73
+    Month  8 : $960.62
+    Month  9 : $7624.85
+    Month 10 : $2134.92
+    Month 11 : $2130.57
+    Month 12 : $6083.95
+  Aggregate         : $41045.38
+
+--- Consumer 6 ---
+  Records processed : 136
+  Sales by store:
+    Store 1 : $28820.83
+    Store 2 : $36324.40
+  Sales by month:
+    Month  1 : $7611.98
+    Month  2 : $6431.22
+    Month  3 : $3533.20
+    Month  4 : $6301.17
+    Month  5 : $4202.59
+    Month  6 : $6882.36
+    Month  7 : $5265.85
+    Month  8 : $5950.04
+    Month  9 : $4323.41
+    Month 10 : $4507.27
+    Month 11 : $4323.97
+    Month 12 : $5812.18
+  Aggregate         : $65145.23
+
+--- Consumer 3 ---
+  Records processed : 98
+  Sales by store:
+    Store 1 : $24290.98
+    Store 2 : $21574.55
+  Sales by month:
+    Month  1 : $7294.90
+    Month  2 : $1774.11
+    Month  3 : $5787.44
+    Month  4 : $4403.84
+    Month  5 : $962.33
+    Month  6 : $4784.56
+    Month  7 : $2085.67
+    Month  8 : $2720.21
+    Month  9 : $3506.96
+    Month 10 : $2694.56
+    Month 11 : $2599.95
+    Month 12 : $7250.99
+  Aggregate         : $45865.53
+
+--- Consumer 10 ---
+  Records processed : 78
+  Sales by store:
+    Store 1 : $18330.24
+    Store 2 : $16551.09
+  Sales by month:
+    Month  1 : $3671.15
+    Month  2 : $4219.27
+    Month  3 : $4774.38
+    Month  4 : $2168.72
+    Month  5 : $2976.69
+    Month  6 : $2927.02
+    Month  7 : $1264.51
+    Month  8 : $1227.16
+    Month  9 : $3568.28
+    Month 10 : $3540.38
+    Month 11 : $2308.92
+    Month 12 : $2234.85
+  Aggregate         : $34881.33
+
+--- Consumer 2 ---
+  Records processed : 87
+  Sales by store:
+    Store 1 : $26263.18
+    Store 2 : $19339.80
+  Sales by month:
+    Month  1 : $2293.15
+    Month  2 : $1687.20
+    Month  3 : $4064.83
+    Month  4 : $3015.53
+    Month  5 : $7839.24
+    Month  6 : $2269.30
+    Month  7 : $4073.83
+    Month  8 : $4826.85
+    Month  9 : $4065.19
+    Month 10 : $4524.12
+    Month 11 : $1767.93
+    Month 12 : $5175.81
+  Aggregate         : $45602.98
+
+--- Consumer 9 ---
+  Records processed : 97
+  Sales by store:
+    Store 1 : $24892.34
+    Store 2 : $26268.91
+  Sales by month:
+    Month  1 : $4126.55
+    Month  2 : $5249.96
+    Month  3 : $3092.67
+    Month  4 : $1705.62
+    Month  5 : $4687.06
+    Month  6 : $4418.73
+    Month  7 : $2944.22
+    Month  8 : $6603.57
+    Month  9 : $3513.39
+    Month 10 : $2714.67
+    Month 11 : $5953.59
+    Month 12 : $6151.22
+  Aggregate         : $51161.25
+
+--- Consumer 5 ---
+  Records processed : 126
+  Sales by store:
+    Store 1 : $32451.21
+    Store 2 : $25881.66
+  Sales by month:
+    Month  1 : $5122.39
+    Month  2 : $5769.00
+    Month  3 : $4820.78
+    Month  4 : $1860.53
+    Month  5 : $6106.28
+    Month  6 : $3057.87
+    Month  7 : $5179.63
+    Month  8 : $5465.32
+    Month  9 : $6654.96
+    Month 10 : $5887.57
+    Month 11 : $4415.14
+    Month 12 : $3993.40
+  Aggregate         : $58332.87
+
+=== Global Statistics ===
+Sales by store:
+  Store 1 : $243899.55
+  Store 2 : $244041.81
+Sales by month:
+  Month  1 : $44635.02
+  Month  2 : $44811.53
+  Month  3 : $38430.97
+  Month  4 : $30865.85
+  Month  5 : $44033.00
+  Month  6 : $40021.21
+  Month  7 : $34358.45
+  Month  8 : $42087.19
+  Month  9 : $51823.50
+  Month 10 : $36297.32
+  Month 11 : $34676.30
+  Month 12 : $45901.01
+Grand total : $487941.36
+
+Total simulation time: 12.510s
+
+========================================
+producers=5  consumers=2  buffer=10
+========================================
+
+--- Consumer 1 ---
+  Records processed : 511
+  Sales by store:
+    Store 1 : $52295.43
+    Store 2 : $41568.37
+    Store 3 : $53441.33
+    Store 4 : $53809.03
+    Store 5 : $47163.05
+  Sales by month:
+    Month  1 : $21299.56
+    Month  2 : $26089.62
+    Month  3 : $15247.23
+    Month  4 : $20087.59
+    Month  5 : $21152.93
+    Month  6 : $24399.68
+    Month  7 : $23277.14
+    Month  8 : $17935.55
+    Month  9 : $20423.94
+    Month 10 : $17889.84
+    Month 11 : $24067.01
+    Month 12 : $16407.11
+  Aggregate         : $248277.21
+
+--- Consumer 2 ---
+  Records processed : 489
+  Sales by store:
+    Store 1 : $59147.54
+    Store 2 : $53903.49
+    Store 3 : $48231.84
+    Store 4 : $56517.00
+    Store 5 : $43560.27
+  Sales by month:
+    Month  1 : $22840.53
+    Month  2 : $22369.29
+    Month  3 : $19146.85
+    Month  4 : $16168.67
+    Month  5 : $15524.45
+    Month  6 : $21021.33
+    Month  7 : $24167.12
+    Month  8 : $23395.79
+    Month  9 : $26036.49
+    Month 10 : $25297.46
+    Month 11 : $22030.82
+    Month 12 : $23361.32
+  Aggregate         : $261360.13
+
+=== Global Statistics ===
+Sales by store:
+  Store 1 : $111442.97
+  Store 2 : $95471.86
+  Store 3 : $101673.17
+  Store 4 : $110326.03
+  Store 5 : $90723.32
+Sales by month:
+  Month  1 : $44140.09
+  Month  2 : $48458.91
+  Month  3 : $34394.08
+  Month  4 : $36256.27
+  Month  5 : $36677.39
+  Month  6 : $45421.01
+  Month  7 : $47444.27
+  Month  8 : $41331.34
+  Month  9 : $46460.43
+  Month 10 : $43187.29
+  Month 11 : $46097.84
+  Month 12 : $39768.43
+Grand total : $509637.35
+
+Total simulation time: 5.074s
+
+========================================
+producers=5  consumers=5  buffer=10
+========================================
+
+--- Consumer 1 ---
+  Records processed : 176
+  Sales by store:
+    Store 1 : $17570.12
+    Store 2 : $19752.61
+    Store 3 : $16969.82
+    Store 4 : $18497.73
+    Store 5 : $14014.83
+  Sales by month:
+    Month  1 : $5350.77
+    Month  2 : $10561.33
+    Month  3 : $12288.92
+    Month  4 : $7672.36
+    Month  5 : $7834.15
+    Month  6 : $6199.47
+    Month  7 : $10540.87
+    Month  8 : $5459.38
+    Month  9 : $7222.56
+    Month 10 : $4617.70
+    Month 11 : $4580.04
+    Month 12 : $4477.56
+  Aggregate         : $86805.11
+
+--- Consumer 2 ---
+  Records processed : 217
+  Sales by store:
+    Store 1 : $24040.73
+    Store 2 : $23098.23
+    Store 3 : $22653.57
+    Store 4 : $21295.95
+    Store 5 : $20481.74
+  Sales by month:
+    Month  1 : $10790.35
+    Month  2 : $9594.79
+    Month  3 : $7850.09
+    Month  4 : $7074.58
+    Month  5 : $6186.83
+    Month  6 : $11818.28
+    Month  7 : $9393.50
+    Month  8 : $6068.43
+    Month  9 : $8859.06
+    Month 10 : $13690.18
+    Month 11 : $10634.00
+    Month 12 : $9610.12
+  Aggregate         : $111570.22
+
+--- Consumer 3 ---
+  Records processed : 201
+  Sales by store:
+    Store 1 : $18641.29
+    Store 2 : $17465.75
+    Store 3 : $25560.27
+    Store 4 : $18817.85
+    Store 5 : $23978.32
+  Sales by month:
+    Month  1 : $7286.11
+    Month  2 : $8341.99
+    Month  3 : $4644.96
+    Month  4 : $8451.58
+    Month  5 : $7305.83
+    Month  6 : $10397.09
+    Month  7 : $10559.65
+    Month  8 : $6236.79
+    Month  9 : $10262.46
+    Month 10 : $11385.83
+    Month 11 : $11299.57
+    Month 12 : $8291.63
+  Aggregate         : $104463.48
+
+--- Consumer 4 ---
+  Records processed : 209
+  Sales by store:
+    Store 1 : $23823.87
+    Store 2 : $19012.82
+    Store 3 : $16258.81
+    Store 4 : $20639.00
+    Store 5 : $19982.01
+  Sales by month:
+    Month  1 : $8006.47
+    Month  2 : $6071.26
+    Month  3 : $8608.60
+    Month  4 : $12162.11
+    Month  5 : $6171.85
+    Month  6 : $9240.86
+    Month  7 : $6686.39
+    Month  8 : $7121.99
+    Month  9 : $10129.07
+    Month 10 : $7616.76
+    Month 11 : $9983.46
+    Month 12 : $7917.69
+  Aggregate         : $99716.51
+
+--- Consumer 5 ---
+  Records processed : 197
+  Sales by store:
+    Store 1 : $17972.97
+    Store 2 : $19911.81
+    Store 3 : $23282.79
+    Store 4 : $23479.94
+    Store 5 : $14266.98
+  Sales by month:
+    Month  1 : $5979.20
+    Month  2 : $8564.03
+    Month  3 : $7804.85
+    Month  4 : $9495.47
+    Month  5 : $11122.29
+    Month  6 : $6693.57
+    Month  7 : $5627.77
+    Month  8 : $9091.83
+    Month  9 : $9298.39
+    Month 10 : $8941.26
+    Month 11 : $5802.97
+    Month 12 : $10492.85
+  Aggregate         : $98914.50
+
+=== Global Statistics ===
+Sales by store:
+  Store 1 : $102048.98
+  Store 2 : $99241.22
+  Store 3 : $104725.26
+  Store 4 : $102730.48
+  Store 5 : $92723.88
+Sales by month:
+  Month  1 : $37412.91
+  Month  2 : $43133.40
+  Month  3 : $41197.41
+  Month  4 : $44856.10
+  Month  5 : $38620.95
+  Month  6 : $44349.26
+  Month  7 : $42808.19
+  Month  8 : $33978.42
+  Month  9 : $45771.55
+  Month 10 : $46251.72
+  Month 11 : $42300.05
+  Month 12 : $40789.85
+Grand total : $501469.81
+
+Total simulation time: 5.085s
+
+========================================
+producers=5  consumers=10  buffer=10
+========================================
+
+--- Consumer 1 ---
+  Records processed : 149
+  Sales by store:
+    Store 1 : $17790.19
+    Store 2 : $14802.36
+    Store 3 : $18324.14
+    Store 4 : $12736.70
+    Store 5 : $15830.79
+  Sales by month:
+    Month  1 : $6139.13
+    Month  2 : $9163.49
+    Month  3 : $4928.16
+    Month  4 : $9389.17
+    Month  5 : $7866.17
+    Month  6 : $6138.34
+    Month  7 : $9273.93
+    Month  8 : $6723.23
+    Month  9 : $3192.98
+    Month 10 : $3569.76
+    Month 11 : $6218.46
+    Month 12 : $6881.38
+  Aggregate         : $79484.18
+
+--- Consumer 8 ---
+  Records processed : 114
+  Sales by store:
+    Store 1 : $11415.44
+    Store 2 : $11604.57
+    Store 3 : $13947.26
+    Store 4 : $12493.96
+    Store 5 : $10622.21
+  Sales by month:
+    Month  1 : $6148.10
+    Month  2 : $6585.49
+    Month  3 : $5757.57
+    Month  4 : $6104.88
+    Month  5 : $4180.48
+    Month  6 : $4579.41
+    Month  7 : $2549.62
+    Month  8 : $7604.66
+    Month  9 : $3897.17
+    Month 10 : $1729.59
+    Month 11 : $6274.12
+    Month 12 : $4672.35
+  Aggregate         : $60083.45
+
+--- Consumer 10 ---
+  Records processed : 105
+  Sales by store:
+    Store 1 : $8288.26
+    Store 2 : $6277.48
+    Store 3 : $9424.57
+    Store 4 : $11604.84
+    Store 5 : $15299.06
+  Sales by month:
+    Month  1 : $4131.24
+    Month  2 : $4191.74
+    Month  3 : $5933.98
+    Month  4 : $3622.74
+    Month  5 : $4252.08
+    Month  6 : $3379.29
+    Month  7 : $6431.59
+    Month  8 : $7915.07
+    Month  9 : $3133.26
+    Month 10 : $2297.02
+    Month 11 : $2414.01
+    Month 12 : $3192.20
+  Aggregate         : $50894.21
+
+--- Consumer 5 ---
+  Records processed : 113
+  Sales by store:
+    Store 1 : $12376.45
+    Store 2 : $9933.52
+    Store 3 : $12019.10
+    Store 4 : $12146.57
+    Store 5 : $10154.85
+  Sales by month:
+    Month  1 : $5722.64
+    Month  2 : $5666.64
+    Month  3 : $5516.67
+    Month  4 : $4548.44
+    Month  5 : $4703.40
+    Month  6 : $4846.14
+    Month  7 : $4374.38
+    Month  8 : $3041.57
+    Month  9 : $4764.14
+    Month 10 : $3798.77
+    Month 11 : $3747.54
+    Month 12 : $5900.16
+  Aggregate         : $56630.48
+
+--- Consumer 3 ---
+  Records processed : 71
+  Sales by store:
+    Store 1 : $4395.52
+    Store 2 : $11877.14
+    Store 3 : $6973.74
+    Store 4 : $7038.90
+    Store 5 : $5549.13
+  Sales by month:
+    Month  1 : $4530.41
+    Month  2 : $2493.22
+    Month  3 : $4297.22
+    Month  4 : $2200.67
+    Month  5 : $703.32
+    Month  6 : $4264.24
+    Month  7 : $3852.64
+    Month  8 : $1591.56
+    Month  9 : $2552.43
+    Month 10 : $3118.29
+    Month 11 : $3237.22
+    Month 12 : $2993.22
+  Aggregate         : $35834.42
+
+--- Consumer 7 ---
+  Records processed : 81
+  Sales by store:
+    Store 1 : $6054.30
+    Store 2 : $10765.45
+    Store 3 : $8569.82
+    Store 4 : $8183.57
+    Store 5 : $8564.49
+  Sales by month:
+    Month  1 : $8235.12
+    Month  2 : $4448.73
+    Month  3 : $3332.65
+    Month  4 : $3223.26
+    Month  5 : $1978.85
+    Month  6 : $2822.10
+    Month  7 : $354.19
+    Month  8 : $3085.16
+    Month  9 : $2802.92
+    Month 10 : $4543.06
+    Month 11 : $3779.00
+    Month 12 : $3532.58
+  Aggregate         : $42137.63
+
+--- Consumer 9 ---
+  Records processed : 110
+  Sales by store:
+    Store 1 : $12866.41
+    Store 2 : $7112.42
+    Store 3 : $10090.15
+    Store 4 : $12354.67
+    Store 5 : $14755.74
+  Sales by month:
+    Month  1 : $3376.08
+    Month  2 : $5719.05
+    Month  3 : $3176.42
+    Month  4 : $5512.30
+    Month  5 : $5855.79
+    Month  6 : $4375.61
+    Month  7 : $1496.94
+    Month  8 : $3730.59
+    Month  9 : $7196.53
+    Month 10 : $6415.40
+    Month 11 : $8089.57
+    Month 12 : $2235.14
+  Aggregate         : $57179.40
+
+--- Consumer 6 ---
+  Records processed : 108
+  Sales by store:
+    Store 1 : $7820.54
+    Store 2 : $13581.72
+    Store 3 : $12940.75
+    Store 4 : $9649.38
+    Store 5 : $11778.92
+  Sales by month:
+    Month  1 : $3772.18
+    Month  2 : $7035.42
+    Month  3 : $2561.35
+    Month  4 : $6691.09
+    Month  5 : $1730.97
+    Month  6 : $5531.25
+    Month  7 : $9160.20
+    Month  8 : $5068.01
+    Month  9 : $2489.76
+    Month 10 : $4772.06
+    Month 11 : $3683.50
+    Month 12 : $3275.53
+  Aggregate         : $55771.31
+
+--- Consumer 4 ---
+  Records processed : 77
+  Sales by store:
+    Store 1 : $6059.06
+    Store 2 : $7890.78
+    Store 3 : $8824.92
+    Store 4 : $5865.66
+    Store 5 : $7895.69
+  Sales by month:
+    Month  1 : $4069.87
+    Month  2 : $1916.14
+    Month  3 : $3518.36
+    Month  4 : $3792.28
+    Month  5 : $4202.99
+    Month  6 : $458.16
+    Month  7 : $1840.76
+    Month  8 : $3570.65
+    Month  9 : $2815.24
+    Month 10 : $4366.53
+    Month 11 : $2948.18
+    Month 12 : $3036.94
+  Aggregate         : $36536.10
+
+--- Consumer 2 ---
+  Records processed : 72
+  Sales by store:
+    Store 1 : $7553.76
+    Store 2 : $8411.80
+    Store 3 : $5501.71
+    Store 4 : $8982.83
+    Store 5 : $3069.85
+  Sales by month:
+    Month  1 : $4515.09
+    Month  2 : $4060.55
+    Month  3 : $2463.08
+    Month  4 : $2163.54
+    Month  5 : $4478.65
+    Month  6 : $2395.19
+    Month  7 : $1905.76
+    Month  8 : $1621.21
+    Month  9 : $1979.60
+    Month 10 : $2919.23
+    Month 11 : $4262.09
+    Month 12 : $755.95
+  Aggregate         : $33519.95
+
+=== Global Statistics ===
+Sales by store:
+  Store 1 : $94619.93
+  Store 2 : $102257.23
+  Store 3 : $106616.15
+  Store 4 : $101057.08
+  Store 5 : $103520.72
+Sales by month:
+  Month  1 : $50639.85
+  Month  2 : $51280.46
+  Month  3 : $41485.47
+  Month  4 : $47248.36
+  Month  5 : $39952.70
+  Month  6 : $38789.72
+  Month  7 : $41240.01
+  Month  8 : $43951.71
+  Month  9 : $34824.02
+  Month 10 : $37529.70
+  Month 11 : $44653.69
+  Month 12 : $36475.44
+Grand total : $508071.12
+
+Total simulation time: 5.120s
+
+========================================
+producers=10  consumers=2  buffer=10
+========================================
+
+--- Consumer 1 ---
+  Records processed : 508
+  Sales by store:
+    Store 1 : $25665.07
+    Store 2 : $25786.74
+    Store 3 : $29219.61
+    Store 4 : $23296.22
+    Store 5 : $22932.55
+    Store 6 : $23119.80
+    Store 7 : $22312.53
+    Store 8 : $32012.88
+    Store 9 : $25967.84
+    Store 10 : $23392.44
+  Sales by month:
+    Month  1 : $23594.40
+    Month  2 : $19079.07
+    Month  3 : $21788.61
+    Month  4 : $17481.36
+    Month  5 : $23023.05
+    Month  6 : $23795.86
+    Month  7 : $24010.31
+    Month  8 : $22661.95
+    Month  9 : $15275.34
+    Month 10 : $22259.07
+    Month 11 : $19754.65
+    Month 12 : $20982.00
+  Aggregate         : $253705.68
+
+--- Consumer 2 ---
+  Records processed : 492
+  Sales by store:
+    Store 1 : $18806.96
+    Store 2 : $29452.69
+    Store 3 : $26352.17
+    Store 4 : $22124.01
+    Store 5 : $23363.30
+    Store 6 : $23208.50
+    Store 7 : $24982.08
+    Store 8 : $24151.66
+    Store 9 : $21820.48
+    Store 10 : $25912.20
+  Sales by month:
+    Month  1 : $20560.78
+    Month  2 : $18823.30
+    Month  3 : $19313.02
+    Month  4 : $20331.98
+    Month  5 : $16864.30
+    Month  6 : $27690.16
+    Month  7 : $18718.79
+    Month  8 : $20951.59
+    Month  9 : $20034.58
+    Month 10 : $18820.86
+    Month 11 : $15815.75
+    Month 12 : $22248.95
+  Aggregate         : $240174.05
+
+=== Global Statistics ===
+Sales by store:
+  Store 1 : $44472.03
+  Store 2 : $55239.43
+  Store 3 : $55571.78
+  Store 4 : $45420.23
+  Store 5 : $46295.85
+  Store 6 : $46328.30
+  Store 7 : $47294.61
+  Store 8 : $56164.54
+  Store 9 : $47788.31
+  Store 10 : $49304.64
+Sales by month:
+  Month  1 : $44155.18
+  Month  2 : $37902.37
+  Month  3 : $41101.63
+  Month  4 : $37813.34
+  Month  5 : $39887.34
+  Month  6 : $51486.03
+  Month  7 : $42729.10
+  Month  8 : $43613.54
+  Month  9 : $35309.92
+  Month 10 : $41079.93
+  Month 11 : $35570.40
+  Month 12 : $43230.95
+Grand total : $493879.73
+
+Total simulation time: 2.615s
+
+========================================
+producers=10  consumers=5  buffer=10
+========================================
+
+--- Consumer 4 ---
+  Records processed : 210
+  Sales by store:
+    Store 1 : $11442.60
+    Store 2 : $8171.91
+    Store 3 : $11204.37
+    Store 4 : $10647.43
+    Store 5 : $12035.74
+    Store 6 : $15475.47
+    Store 7 : $11505.04
+    Store 8 : $10517.75
+    Store 9 : $5244.15
+    Store 10 : $5769.34
+  Sales by month:
+    Month  1 : $6928.21
+    Month  2 : $10790.06
+    Month  3 : $9961.80
+    Month  4 : $8040.01
+    Month  5 : $8752.17
+    Month  6 : $3002.92
+    Month  7 : $9907.21
+    Month  8 : $11003.19
+    Month  9 : $6607.58
+    Month 10 : $9172.55
+    Month 11 : $8465.43
+    Month 12 : $9382.68
+  Aggregate         : $102013.79
+
+--- Consumer 5 ---
+  Records processed : 213
+  Sales by store:
+    Store 1 : $6846.38
+    Store 2 : $9390.51
+    Store 3 : $10609.73
+    Store 4 : $12548.17
+    Store 5 : $10814.94
+    Store 6 : $11767.08
+    Store 7 : $11675.72
+    Store 8 : $7255.53
+    Store 9 : $14905.36
+    Store 10 : $13521.84
+  Sales by month:
+    Month  1 : $15850.71
+    Month  2 : $11250.18
+    Month  3 : $7954.25
+    Month  4 : $6319.73
+    Month  5 : $5005.54
+    Month  6 : $7530.16
+    Month  7 : $12410.68
+    Month  8 : $3452.30
+    Month  9 : $9661.43
+    Month 10 : $7180.31
+    Month 11 : $9851.13
+    Month 12 : $12868.82
+  Aggregate         : $109335.25
+
+--- Consumer 1 ---
+  Records processed : 221
+  Sales by store:
+    Store 1 : $10625.37
+    Store 2 : $11500.36
+    Store 3 : $11283.72
+    Store 4 : $13469.59
+    Store 5 : $11120.00
+    Store 6 : $11092.60
+    Store 7 : $10608.03
+    Store 8 : $11738.59
+    Store 9 : $12290.51
+    Store 10 : $10504.29
+  Sales by month:
+    Month  1 : $5309.44
+    Month  2 : $6026.55
+    Month  3 : $13611.00
+    Month  4 : $8013.28
+    Month  5 : $5925.12
+    Month  6 : $13576.32
+    Month  7 : $8427.07
+    Month  8 : $13310.37
+    Month  9 : $8098.15
+    Month 10 : $10412.22
+    Month 11 : $12959.67
+    Month 12 : $8563.86
+  Aggregate         : $114233.05
+
+--- Consumer 3 ---
+  Records processed : 174
+  Sales by store:
+    Store 1 : $11387.40
+    Store 2 : $8651.79
+    Store 3 : $7125.81
+    Store 4 : $8788.45
+    Store 5 : $10172.48
+    Store 6 : $6721.96
+    Store 7 : $10057.52
+    Store 8 : $7036.48
+    Store 9 : $10386.62
+    Store 10 : $8170.09
+  Sales by month:
+    Month  1 : $8154.85
+    Month  2 : $9541.61
+    Month  3 : $5296.45
+    Month  4 : $9191.04
+    Month  5 : $6575.29
+    Month  6 : $7098.41
+    Month  7 : $4928.06
+    Month  8 : $5848.84
+    Month  9 : $8742.09
+    Month 10 : $7320.94
+    Month 11 : $8912.99
+    Month 12 : $6888.00
+  Aggregate         : $88498.59
+
+--- Consumer 2 ---
+  Records processed : 182
+  Sales by store:
+    Store 1 : $8438.97
+    Store 2 : $6514.60
+    Store 3 : $9391.85
+    Store 4 : $5675.25
+    Store 5 : $7223.60
+    Store 6 : $10919.26
+    Store 7 : $8130.33
+    Store 8 : $8778.56
+    Store 9 : $13369.02
+    Store 10 : $13735.53
+  Sales by month:
+    Month  1 : $6985.63
+    Month  2 : $7929.02
+    Month  3 : $6244.64
+    Month  4 : $2201.32
+    Month  5 : $9842.14
+    Month  6 : $5342.97
+    Month  7 : $7227.70
+    Month  8 : $8557.99
+    Month  9 : $9944.98
+    Month 10 : $11523.30
+    Month 11 : $11938.24
+    Month 12 : $4439.02
+  Aggregate         : $92176.96
+
+=== Global Statistics ===
+Sales by store:
+  Store 1 : $48740.71
+  Store 2 : $44229.16
+  Store 3 : $49615.47
+  Store 4 : $51128.88
+  Store 5 : $51366.76
+  Store 6 : $55976.37
+  Store 7 : $51976.64
+  Store 8 : $45326.91
+  Store 9 : $56195.65
+  Store 10 : $51701.08
+Sales by month:
+  Month  1 : $43228.84
+  Month  2 : $45537.42
+  Month  3 : $43068.15
+  Month  4 : $33765.37
+  Month  5 : $36100.27
+  Month  6 : $36550.79
+  Month  7 : $42900.71
+  Month  8 : $42172.69
+  Month  9 : $43054.23
+  Month 10 : $45609.32
+  Month 11 : $52127.46
+  Month 12 : $42142.39
+Grand total : $506257.63
+
+Total simulation time: 2.536s
+
+========================================
+producers=10  consumers=10  buffer=10
+========================================
+
+--- Consumer 3 ---
+  Records processed : 118
+  Sales by store:
+    Store 1 : $7104.57
+    Store 2 : $6417.03
+    Store 3 : $7272.85
+    Store 4 : $4267.70
+    Store 5 : $7082.20
+    Store 6 : $5993.17
+    Store 7 : $8639.50
+    Store 8 : $3196.33
+    Store 9 : $6038.68
+    Store 10 : $3609.90
+  Sales by month:
+    Month  1 : $4483.57
+    Month  2 : $3244.32
+    Month  3 : $5755.14
+    Month  4 : $7758.97
+    Month  5 : $3762.32
+    Month  6 : $4404.27
+    Month  7 : $5144.99
+    Month  8 : $5328.10
+    Month  9 : $5233.69
+    Month 10 : $4481.51
+    Month 11 : $4739.90
+    Month 12 : $5285.12
+  Aggregate         : $59621.92
+
+--- Consumer 1 ---
+  Records processed : 77
+  Sales by store:
+    Store 1 : $5416.18
+    Store 2 : $3550.63
+    Store 3 : $2164.61
+    Store 4 : $5224.27
+    Store 5 : $1348.59
+    Store 6 : $4211.38
+    Store 7 : $5929.45
+    Store 8 : $4765.96
+    Store 9 : $1452.77
+    Store 10 : $2645.99
+  Sales by month:
+    Month  1 : $2520.91
+    Month  2 : $1197.17
+    Month  3 : $3819.23
+    Month  4 : $3304.78
+    Month  5 : $2361.01
+    Month  6 : $4739.27
+    Month  7 : $5335.33
+    Month  8 : $1311.50
+    Month  9 : $2766.52
+    Month 10 : $3147.97
+    Month 11 : $2523.61
+    Month 12 : $3682.54
+  Aggregate         : $36709.83
+
+--- Consumer 8 ---
+  Records processed : 113
+  Sales by store:
+    Store 1 : $6566.91
+    Store 2 : $5129.60
+    Store 3 : $4199.17
+    Store 4 : $6398.71
+    Store 5 : $8149.69
+    Store 6 : $6123.81
+    Store 7 : $6325.35
+    Store 8 : $5888.06
+    Store 9 : $3343.22
+    Store 10 : $6292.99
+  Sales by month:
+    Month  1 : $4608.09
+    Month  2 : $2709.66
+    Month  3 : $2014.64
+    Month  4 : $4589.21
+    Month  5 : $6286.91
+    Month  6 : $3118.62
+    Month  7 : $7580.25
+    Month  8 : $5594.71
+    Month  9 : $4652.97
+    Month 10 : $3166.55
+    Month 11 : $5787.63
+    Month 12 : $8308.30
+  Aggregate         : $58417.52
+
+--- Consumer 5 ---
+  Records processed : 132
+  Sales by store:
+    Store 1 : $4403.25
+    Store 2 : $4477.14
+    Store 3 : $7328.91
+    Store 4 : $7353.15
+    Store 5 : $5499.80
+    Store 6 : $7231.94
+    Store 7 : $6854.49
+    Store 8 : $5000.02
+    Store 9 : $6972.04
+    Store 10 : $6208.56
+  Sales by month:
+    Month  1 : $4889.99
+    Month  2 : $7334.23
+    Month  3 : $4858.93
+    Month  4 : $5040.50
+    Month  5 : $4191.00
+    Month  6 : $6622.51
+    Month  7 : $6165.47
+    Month  8 : $3144.63
+    Month  9 : $7128.51
+    Month 10 : $4456.61
+    Month 11 : $3306.05
+    Month 12 : $4190.85
+  Aggregate         : $61329.28
+
+--- Consumer 2 ---
+  Records processed : 115
+  Sales by store:
+    Store 1 : $5333.27
+    Store 2 : $6329.59
+    Store 3 : $4919.36
+    Store 4 : $4542.20
+    Store 5 : $4937.18
+    Store 6 : $8857.85
+    Store 7 : $4560.15
+    Store 8 : $4403.98
+    Store 9 : $6109.75
+    Store 10 : $6856.45
+  Sales by month:
+    Month  1 : $4506.45
+    Month  2 : $3648.38
+    Month  3 : $3109.78
+    Month  4 : $4000.09
+    Month  5 : $3933.87
+    Month  6 : $7246.37
+    Month  7 : $3245.80
+    Month  8 : $4573.89
+    Month  9 : $3846.92
+    Month 10 : $6024.01
+    Month 11 : $5401.68
+    Month 12 : $7312.54
+  Aggregate         : $56849.77
+
+--- Consumer 10 ---
+  Records processed : 104
+  Sales by store:
+    Store 1 : $4833.66
+    Store 2 : $3802.17
+    Store 3 : $5433.38
+    Store 4 : $6229.74
+    Store 5 : $4633.10
+    Store 6 : $6499.07
+    Store 7 : $5323.33
+    Store 8 : $6927.39
+    Store 9 : $4137.46
+    Store 10 : $6199.52
+  Sales by month:
+    Month  1 : $7304.12
+    Month  2 : $4205.16
+    Month  3 : $3459.11
+    Month  4 : $3887.72
+    Month  5 : $5001.58
+    Month  6 : $4882.86
+    Month  7 : $3639.08
+    Month  8 : $5176.26
+    Month  9 : $3902.82
+    Month 10 : $5330.62
+    Month 11 : $3110.48
+    Month 12 : $4119.01
+  Aggregate         : $54018.82
+
+--- Consumer 7 ---
+  Records processed : 114
+  Sales by store:
+    Store 1 : $4455.38
+    Store 2 : $6087.70
+    Store 3 : $6307.49
+    Store 4 : $4724.63
+    Store 5 : $7095.58
+    Store 6 : $5129.04
+    Store 7 : $3281.38
+    Store 8 : $7210.73
+    Store 9 : $3129.04
+    Store 10 : $9088.12
+  Sales by month:
+    Month  1 : $4915.18
+    Month  2 : $5793.51
+    Month  3 : $3960.99
+    Month  4 : $3760.29
+    Month  5 : $5147.31
+    Month  6 : $5561.53
+    Month  7 : $3674.10
+    Month  8 : $3848.58
+    Month  9 : $4375.00
+    Month 10 : $3325.49
+    Month 11 : $5632.38
+    Month 12 : $6514.70
+  Aggregate         : $56509.07
+
+--- Consumer 6 ---
+  Records processed : 88
+  Sales by store:
+    Store 1 : $6418.55
+    Store 2 : $3803.84
+    Store 3 : $2576.15
+    Store 4 : $4053.18
+    Store 5 : $2388.74
+    Store 6 : $3148.82
+    Store 7 : $4303.96
+    Store 8 : $2939.74
+    Store 9 : $5924.36
+    Store 10 : $5468.72
+  Sales by month:
+    Month  1 : $3644.97
+    Month  2 : $4004.78
+    Month  3 : $2391.51
+    Month  4 : $2992.06
+    Month  5 : $2801.48
+    Month  6 : $2448.11
+    Month  7 : $2300.92
+    Month  8 : $2801.91
+    Month  9 : $2607.60
+    Month 10 : $6027.79
+    Month 11 : $5732.06
+    Month 12 : $3272.88
+  Aggregate         : $41026.06
+
+--- Consumer 4 ---
+  Records processed : 89
+  Sales by store:
+    Store 1 : $4425.07
+    Store 2 : $3588.70
+    Store 3 : $5884.39
+    Store 4 : $4412.28
+    Store 5 : $5138.29
+    Store 6 : $3086.66
+    Store 7 : $1521.03
+    Store 8 : $2231.92
+    Store 9 : $6781.73
+    Store 10 : $5971.20
+  Sales by month:
+    Month  1 : $1689.20
+    Month  2 : $2448.79
+    Month  3 : $5628.92
+    Month  4 : $3677.29
+    Month  5 : $3037.97
+    Month  6 : $1092.50
+    Month  7 : $3456.15
+    Month  8 : $6796.11
+    Month  9 : $4450.61
+    Month 10 : $2014.71
+    Month 11 : $4917.00
+    Month 12 : $3832.01
+  Aggregate         : $43041.26
+
+--- Consumer 9 ---
+  Records processed : 50
+  Sales by store:
+    Store 1 : $2729.78
+    Store 2 : $1799.97
+    Store 3 : $2747.89
+    Store 4 : $2359.08
+    Store 5 : $638.57
+    Store 6 : $714.81
+    Store 7 : $2532.48
+    Store 8 : $2668.10
+    Store 9 : $4685.49
+    Store 10 : $4027.63
+  Sales by month:
+    Month  1 : $428.22
+    Month  2 : $2953.78
+    Month  3 : $111.17
+    Month  4 : $3439.59
+    Month  5 : $1594.45
+    Month  6 : $3629.40
+    Month  7 : $1611.79
+    Month  8 : $2152.28
+    Month  9 : $4190.05
+    Month 10 : $695.44
+    Month 11 : $2304.76
+    Month 12 : $1792.89
+  Aggregate         : $24903.81
+
+=== Global Statistics ===
+Sales by store:
+  Store 1 : $51686.61
+  Store 2 : $44986.38
+  Store 3 : $48834.19
+  Store 4 : $49564.94
+  Store 5 : $46911.75
+  Store 6 : $50996.54
+  Store 7 : $49271.12
+  Store 8 : $45232.23
+  Store 9 : $48574.52
+  Store 10 : $56369.06
+Sales by month:
+  Month  1 : $38990.70
+  Month  2 : $37539.79
+  Month  3 : $35109.40
+  Month  4 : $42450.49
+  Month  5 : $38117.90
+  Month  6 : $43745.45
+  Month  7 : $42153.87
+  Month  8 : $40727.96
+  Month  9 : $43154.69
+  Month 10 : $38670.71
+  Month 11 : $43455.55
+  Month 12 : $48310.84
+Grand total : $492427.36
+
+Total simulation time: 2.617s
+
+
+--- Timing Comparison (seconds) ---
+       p \ c       c=2       c=5      c=10
+------------------------------------------
+         p=2    12.813    13.038    12.510
+         p=5     5.074     5.085     5.120
+        p=10     2.615     2.536     2.617
+
