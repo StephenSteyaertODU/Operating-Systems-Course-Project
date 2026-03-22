@@ -31,7 +31,3 @@ struct SalesRecord {
     bool is_sentinel = false; ///< If true, signals the consuming thread to stop
 };
 
-#include "../buffer.hpp"
-#include "../stats.hpp"
-#include "../producer.hpp"
-#include "../consumer.hpp"

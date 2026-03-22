@@ -19,9 +19,6 @@ target_link_libraries(producer_consumer_tests
 
 target_compile_features(producer_consumer_tests PRIVATE cxx_std_20)
 
-# Override TOTAL_ITEMS for tests so Producer threads finish quickly (no 20s+ waits)
-target_compile_definitions(producer_consumer_tests PRIVATE PC_TOTAL_ITEMS=50)
-
 include(Catch)
 
 catch_discover_tests(producer_consumer_tests)

@@ -23,9 +23,8 @@
  *   5. Join consumer threads.
  *   6. Return GlobalStats.
  */
-static GlobalStats run_simulation(int p, int c, int b) {
+static void run_simulation(int p, int c, int b, GlobalStats& global) {
     SharedBuffer       buffer(b);
-    GlobalStats        global(p);
     std::atomic<int>   total_produced{0};
 
     // Launch consumers first so they're ready when producers start
@@ -36,11 +35,11 @@ static GlobalStats run_simulation(int p, int c, int b) {
         consumer_threads.emplace_back(&Consumer::run, consumers.back().get());
     }
 
-    // Launch producers
+    // Launch producers — pass 50 so tests finish in seconds rather than minutes
     std::vector<std::unique_ptr<Producer>> producers;
     std::vector<std::thread> producer_threads;
     for (int i = 1; i <= p; ++i) {
-        producers.push_back(std::make_unique<Producer>(i, buffer, total_produced));
+        producers.push_back(std::make_unique<Producer>(i, buffer, total_produced, 50));
         producer_threads.emplace_back(&Producer::run, producers.back().get());
     }
 
@@ -54,8 +53,6 @@ static GlobalStats run_simulation(int p, int c, int b) {
     }
 
     for (auto& t : consumer_threads) t.join();
-
-    return global;
 }
 
 // ============================================================================
@@ -63,10 +60,11 @@ static GlobalStats run_simulation(int p, int c, int b) {
 // ============================================================================
 
 TEST_CASE("p=2 c=2: all records consumed, grand total > 0", "[integration]") {
-    GlobalStats g = run_simulation(2, 2, 10);
+    GlobalStats g(2);
+    run_simulation(2, 2, 10, g);
 
     // Every record has amount >= 0.50, so total must be >= 0.50 * TOTAL_ITEMS
-    double min_expected = 0.50 * Producer::TOTAL_ITEMS;
+    double min_expected = 0.50 * 50;
     REQUIRE(g.aggregate >= min_expected);
 
     // All store_sales must be non-negative
@@ -94,7 +92,7 @@ TEST_CASE("p=5 c=5: records_processed sums to TOTAL_ITEMS", "[integration]") {
     std::vector<std::unique_ptr<Producer>> producers;
     std::vector<std::thread> producer_threads;
     for (int i = 1; i <= P; ++i) {
-        producers.push_back(std::make_unique<Producer>(i, buffer, total_produced));
+        producers.push_back(std::make_unique<Producer>(i, buffer, total_produced, 50));
         producer_threads.emplace_back(&Producer::run, producers.back().get());
     }
 
@@ -112,36 +110,39 @@ TEST_CASE("p=5 c=5: records_processed sums to TOTAL_ITEMS", "[integration]") {
     for (auto& c : consumers)
         total_consumed += c->localStats().records_processed;
 
-    REQUIRE(total_consumed == Producer::TOTAL_ITEMS);
+    REQUIRE(total_consumed == 50);
 
     // Global aggregate must equal sum of all local aggregates
     double local_total = 0.0;
     for (auto& c : consumers)
         local_total += c->localStats().aggregate;
-    REQUIRE(global.aggregate == local_total);
+    REQUIRE(std::abs(global.aggregate - local_total) < 0.001);
 }
 
 TEST_CASE("p=10 c=2 small buffer: no deadlock, all records consumed", "[integration]") {
-    GlobalStats g = run_simulation(10, 2, 5);
-    REQUIRE(g.aggregate >= 0.50 * Producer::TOTAL_ITEMS);
+    GlobalStats g(10);
+    run_simulation(10, 2, 5, g);
+    REQUIRE(g.aggregate >= 0.50 * 50);
 }
 
 TEST_CASE("p=2 c=10: all store sales sum to grand total", "[integration]") {
-    GlobalStats g = run_simulation(2, 10, 15);
+    GlobalStats g(2);
+    run_simulation(2, 10, 15, g);
 
     double store_sum = 0.0;
     for (int s = 1; s <= 2; ++s)
         store_sum += g.store_sales[s];
 
-    REQUIRE(store_sum == g.aggregate);
+    REQUIRE(std::abs(store_sum - g.aggregate) < 0.001);
 }
 
 TEST_CASE("p=5 c=5: all month sales sum to grand total", "[integration]") {
-    GlobalStats g = run_simulation(5, 5, 20);
+    GlobalStats g(5);
+    run_simulation(5, 5, 20, g);
 
     double month_sum = 0.0;
     for (int m = 0; m < 12; ++m)
         month_sum += g.month_sales[m];
 
-    REQUIRE(month_sum == g.aggregate);
+    REQUIRE(std::abs(month_sum - g.aggregate) < 0.001);
 }

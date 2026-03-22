@@ -20,14 +20,6 @@
  */
 class Producer {
 public:
-    /// Total number of sales records to produce across ALL producer threads.
-    /// Can be overridden at compile time via -DPC_TOTAL_ITEMS=N (used by tests
-    /// to keep runtimes short without changing source).
-#ifndef PC_TOTAL_ITEMS
-#define PC_TOTAL_ITEMS 1000
-#endif
-    static constexpr int TOTAL_ITEMS = PC_TOTAL_ITEMS;
-
     /**
      * @brief Construct a Producer for a specific store.
      *
@@ -35,8 +27,12 @@ public:
      * @param buffer          Shared buffer to write records into.
      * @param total_produced  Atomic counter shared across all producers;
      *                        tracks how many records have been claimed so far.
+     * @param total_items     Total records to produce across ALL producers
+     *                        combined (default 1000; tests may pass a smaller
+     *                        value to avoid long runtimes).
      */
-    Producer(int store_id, SharedBuffer& buffer, std::atomic<int>& total_produced);
+    Producer(int store_id, SharedBuffer& buffer, std::atomic<int>& total_produced,
+             int total_items = 1000);
 
     /**
      * @brief Entry point for the producer thread.
@@ -68,5 +64,6 @@ private:
     int               store_id_;        ///< This producer's store ID (1-based)
     SharedBuffer&     buffer_;          ///< Shared buffer (not owned)
     std::atomic<int>& total_produced_;  ///< Shared slot counter (not owned)
+    int               total_items_;     ///< Total records to produce across all producers
     std::mt19937      rng_;             ///< Per-thread RNG seeded from random_device
 };

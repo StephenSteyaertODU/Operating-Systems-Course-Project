@@ -1,9 +1,11 @@
 #include "producer.hpp"
 
-Producer::Producer(int store_id, SharedBuffer& buffer, std::atomic<int>& total_produced)
+Producer::Producer(int store_id, SharedBuffer& buffer, std::atomic<int>& total_produced,
+                   int total_items)
     : store_id_(store_id)
     , buffer_(buffer)
     , total_produced_(total_produced)
+    , total_items_(total_items)
     , rng_(std::random_device{}())  // seed each thread's RNG independently
 {}
 
@@ -29,9 +31,9 @@ void Producer::run() {
 
     while (true) {
         // Atomically claim the next production slot.
-        // Slots 0–(TOTAL_ITEMS-1) map to actual records; anything >= TOTAL_ITEMS means done.
+        // Slots 0–(total_items_-1) map to actual records; anything >= total_items_ means done.
         int slot = total_produced_.fetch_add(1);
-        if (slot >= TOTAL_ITEMS) break;
+        if (slot >= total_items_) break;
 
         buffer_.produce(generateRecord());
 
