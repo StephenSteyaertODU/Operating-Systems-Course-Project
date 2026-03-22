@@ -32,3 +32,6 @@ struct SalesRecord {
 };
 
 #include "../buffer.hpp"
+#include "../stats.hpp"
+#include "../producer.hpp"
+#include "../consumer.hpp"
