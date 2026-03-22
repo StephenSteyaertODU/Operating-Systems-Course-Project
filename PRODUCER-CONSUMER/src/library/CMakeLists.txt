@@ -1,3 +1,5 @@
+find_package(Threads REQUIRED)
+
 file(GLOB_RECURSE LIB_SOURCES
     CONFIGURE_DEPENDS
     ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
@@ -18,5 +20,7 @@ target_precompile_headers(producer_consumer_library PRIVATE ${CMAKE_CURRENT_SOUR
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     target_compile_options(producer_consumer_library PRIVATE -Wall -Wextra -Wpedantic)
 endif()
+
+target_link_libraries(producer_consumer_library PUBLIC Threads::Threads)
 
 add_library(producer_consumer::library ALIAS producer_consumer_library)
