@@ -78,9 +78,9 @@ void printStats(vector<Process> processes, string algorithmName) {
         return;
     }
 
-    outputFile << "\n==================================================" << endl;
+    // outputFile << "\n==================================================" << endl;
     outputFile << "Algorithm: " << algorithmName << endl;
-    outputFile << "==================================================" << endl;
+    // outputFile << "==================================================" << endl;
     outputFile << "Number of processes: " << numProcesses << endl;
     outputFile << "Total elapsed time: " << totalElapsedTime << endl;
     outputFile << "Throughput: " << throughput << endl;
@@ -88,7 +88,7 @@ void printStats(vector<Process> processes, string algorithmName) {
     outputFile << "Average waiting time: " << avgWaiting << endl;
     outputFile << "Average turnaround time: " << avgTurnaround << endl;
     outputFile << "Average response time: " << avgResponse << endl;
-    outputFile << "==================================================" << endl;
+    // outputFile << "==================================================" << endl;
 
     outputFile.close();
     cout << "\nResults saved to results.txt" << endl;

@@ -1,0 +1,8 @@
+Algorithm: FIFO
+Number of processes: 500
+Total elapsed time: 14734
+Throughput: 21.116
+CPU utilization: 71.6574%
+Average waiting time: 17.884
+Average turnaround time: 39
+Average response time: 17.884
