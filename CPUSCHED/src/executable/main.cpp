@@ -4,6 +4,7 @@
 #include <string>
 #include <algorithm>
 #include <climits>
+#include <filesystem>
 
 using namespace std;
 
@@ -20,7 +21,7 @@ struct Process {
 };
 
 // calculate stats and write them to an output file
-void printStats(vector<Process> processes, string algorithmName, string outputFileName) {
+void printStats(vector<Process> processes, string algorithmName, filesystem::path outputFileName) {
 
     int numProcesses = processes.size();
 
@@ -83,14 +84,7 @@ void printStats(vector<Process> processes, string algorithmName, string outputFi
 
     outputFile.close();
 
-    // get just the file name (remove ../../ so it looks cleaner in output)
-    string displayName = outputFileName;
-    size_t pos = displayName.find_last_of("/\\");
-    if (pos != string::npos) {
-        displayName = displayName.substr(pos + 1);
-    }
-
-    cout << "\nResults saved to " << displayName 
+    cout << "\nResults saved to " << outputFileName.filename().string()
          << " in the CPUSCHED directory." << endl;
 }
 
@@ -181,16 +175,19 @@ vector<Process> runSJF(vector<Process> processes) {
 
 int main(int argc, char* argv[]) {
 
-    string filePath;
+    std::filesystem::path exe    = std::filesystem::weakly_canonical(argv[0]);
+
+    std::filesystem::path parentDir = exe.parent_path();
+    std::filesystem::path filePath = parentDir / "data";
 
     // check if user gave a file name or not
     if (argc == 1) {
         // no argument, use default file
-        filePath = "../../data/datafile.txt";
+        filePath = filePath / "datafile.txt";
     }
     else if (argc == 2) {
         // user provided a file name
-        filePath = "../../data/" + string(argv[1]);
+        filePath = filePath / string(argv[1]);
     }
     else {
         cout << "Usage: scheduler.exe [optional_input_file]" << endl;
@@ -233,14 +230,7 @@ int main(int argc, char* argv[]) {
 
     inputFile.close();
 
-    // clean up file name for display
-    string displayFile = filePath;
-    size_t pos = displayFile.find_last_of("/\\");
-    if (pos != string::npos) {
-        displayFile = displayFile.substr(pos + 1);
-    }
-
-    cout << "Loaded " << allProcesses.size() << " processes from " << displayFile << endl;
+    cout << "Loaded " << allProcesses.size() << " processes from " << filePath.filename().string() << endl;
 
     // ask user which algorithm to run
     cout << "\nWhich scheduling algorithm?" << endl;
@@ -254,18 +244,18 @@ int main(int argc, char* argv[]) {
 
     if (choice == 1) {
         auto result = runFIFO(allProcesses);
-        printStats(result, "FIFO", "../../FIFOresults.txt");
+        printStats(result, "FIFO", parentDir / "FIFOresults.txt");
     }
     else if (choice == 2) {
         auto result = runSJF(allProcesses);
-        printStats(result, "SJF (Non-Preemptive)", "../../SJFresults.txt");
+        printStats(result, "SJF (Non-Preemptive)", parentDir / "SJFresults.txt");
     }
     else if (choice == 3) {
         auto fifoResult = runFIFO(allProcesses);
-        printStats(fifoResult, "FIFO", "../../FIFOresults.txt");
+        printStats(fifoResult, "FIFO", parentDir / "FIFOresults.txt");
 
         auto sjfResult = runSJF(allProcesses);
-        printStats(sjfResult, "SJF (Non-Preemptive)", "../../SJFresults.txt");
+        printStats(sjfResult, "SJF (Non-Preemptive)", parentDir / "SJFresults.txt");
     }
     else {
         cout << "Invalid choice." << endl;
