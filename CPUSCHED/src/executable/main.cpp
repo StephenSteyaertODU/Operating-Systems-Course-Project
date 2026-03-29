@@ -7,6 +7,7 @@
 
 using namespace std;
 
+// hold all the information for each process
 struct Process {
     int pid;
     int arrivalTime;
@@ -18,16 +19,18 @@ struct Process {
     int responseTime;
 };
 
-// UPDATED: now takes filename
+// calculate stats and write them to an output file
 void printStats(vector<Process> processes, string algorithmName, string outputFileName) {
 
     int numProcesses = processes.size();
 
+    // variables to keep track of totals
     int totalBurst = 0;
     int totalWaiting = 0;
     int totalTurnaround = 0;
     int totalResponse = 0;
 
+    // loop through all processes and add up values
     for (int i = 0; i < numProcesses; i++) {
         totalBurst += processes[i].burstTime;
         totalWaiting += processes[i].waitingTime;
@@ -35,6 +38,7 @@ void printStats(vector<Process> processes, string algorithmName, string outputFi
         totalResponse += processes[i].responseTime;
     }
 
+    // find earliest start time and latest finish time
     int firstStart = processes[0].startTime;
     int lastFinish = processes[0].finishTime;
 
@@ -49,12 +53,14 @@ void printStats(vector<Process> processes, string algorithmName, string outputFi
 
     int totalElapsedTime = lastFinish - firstStart;
 
+    // calculate averages
     double throughput = (double)totalBurst / numProcesses;
     double cpuUtilization = ((double)totalBurst / totalElapsedTime) * 100;
     double avgWaiting = (double)totalWaiting / numProcesses;
     double avgTurnaround = (double)totalTurnaround / numProcesses;
     double avgResponse = (double)totalResponse / numProcesses;
 
+    // open output file (this will overwrite if it already exists)
     ofstream outputFile(outputFileName);
 
     if (!outputFile) {
@@ -62,6 +68,7 @@ void printStats(vector<Process> processes, string algorithmName, string outputFi
         return;
     }
 
+    // write results to file
     outputFile << "\n==================================================" << endl;
     outputFile << "Algorithm: " << algorithmName << endl;
     outputFile << "==================================================" << endl;
@@ -75,21 +82,22 @@ void printStats(vector<Process> processes, string algorithmName, string outputFi
     outputFile << "==================================================" << endl;
 
     outputFile.close();
-    // extract just the filename (remove ../../)
-string displayName = outputFileName;
 
-// find last slash and trim everything before it
-size_t pos = displayName.find_last_of("/\\");
-if (pos != string::npos) {
-    displayName = displayName.substr(pos + 1);
+    // get just the file name (remove ../../ so it looks cleaner in output)
+    string displayName = outputFileName;
+    size_t pos = displayName.find_last_of("/\\");
+    if (pos != string::npos) {
+        displayName = displayName.substr(pos + 1);
+    }
+
+    cout << "\nResults saved to " << displayName 
+         << " in the CPUSCHED directory." << endl;
 }
 
-cout << "\nResults saved to " << displayName 
-     << " in the CPUSCHED directory." << endl;
-}
-
+// FIFO scheduling: just run processes in order they arrive
 vector<Process> runFIFO(vector<Process> processes) {
 
+    // sort processes by arrival time
     sort(processes.begin(), processes.end(),
          [](Process a, Process b) { return a.arrivalTime < b.arrivalTime; });
 
@@ -97,14 +105,17 @@ vector<Process> runFIFO(vector<Process> processes) {
 
     for (int i = 0; i < processes.size(); i++) {
 
+        // if CPU is idle, jump to next arrival
         if (currentTime < processes[i].arrivalTime) {
             currentTime = processes[i].arrivalTime;
         }
 
+        // set times for this process
         processes[i].startTime = currentTime;
         processes[i].waitingTime = currentTime - processes[i].arrivalTime;
         processes[i].responseTime = currentTime - processes[i].arrivalTime;
 
+        // run process
         currentTime += processes[i].burstTime;
 
         processes[i].finishTime = currentTime;
@@ -114,8 +125,10 @@ vector<Process> runFIFO(vector<Process> processes) {
     return processes;
 }
 
+// SJF scheduling: pick shortest job that has arrived
 vector<Process> runSJF(vector<Process> processes) {
 
+    // sort by arrival time first
     sort(processes.begin(), processes.end(),
          [](Process a, Process b) { return a.arrivalTime < b.arrivalTime; });
 
@@ -131,6 +144,7 @@ vector<Process> runSJF(vector<Process> processes) {
         int shortestIndex = -1;
         int shortestBurst = INT_MAX;
 
+        // find shortest job that is ready
         for (int i = 0; i < n; i++) {
             if (!isDone[i] && processes[i].arrivalTime <= currentTime) {
                 if (processes[i].burstTime < shortestBurst) {
@@ -140,11 +154,13 @@ vector<Process> runSJF(vector<Process> processes) {
             }
         }
 
+        // if nothing is ready yet, move time forward
         if (shortestIndex == -1) {
             currentTime++;
             continue;
         }
 
+        // run the selected process
         processes[shortestIndex].startTime = currentTime;
         processes[shortestIndex].waitingTime = currentTime - processes[shortestIndex].arrivalTime;
         processes[shortestIndex].responseTime = currentTime - processes[shortestIndex].arrivalTime;
@@ -167,11 +183,13 @@ int main(int argc, char* argv[]) {
 
     string filePath;
 
-    // ARGUMENT HANDLING
+    // check if user gave a file name or not
     if (argc == 1) {
+        // no argument, use default file
         filePath = "../../data/datafile.txt";
     }
     else if (argc == 2) {
+        // user provided a file name
         filePath = "../../data/" + string(argv[1]);
     }
     else {
@@ -179,6 +197,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    // try to open file
     ifstream inputFile(filePath);
 
     if (!inputFile) {
@@ -187,6 +206,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    // skip first line (header)
     string header;
     getline(inputFile, header);
 
@@ -194,6 +214,7 @@ int main(int argc, char* argv[]) {
     int arrival, burst;
     int pidCounter = 1;
 
+    // read processes from file
     while (inputFile >> arrival >> burst) {
         Process p;
         p.pid = pidCounter++;
@@ -206,21 +227,22 @@ int main(int argc, char* argv[]) {
         p.responseTime = 0;
         allProcesses.push_back(p);
 
+        // limit to 500 processes
         if (allProcesses.size() == 500) break;
     }
 
     inputFile.close();
 
-   // extract just the filename for clean display
-string displayFile = filePath;
+    // clean up file name for display
+    string displayFile = filePath;
+    size_t pos = displayFile.find_last_of("/\\");
+    if (pos != string::npos) {
+        displayFile = displayFile.substr(pos + 1);
+    }
 
-size_t pos = displayFile.find_last_of("/\\");
-if (pos != string::npos) {
-    displayFile = displayFile.substr(pos + 1);
-}
+    cout << "Loaded " << allProcesses.size() << " processes from " << displayFile << endl;
 
-    cout << "Loaded " << allProcesses.size() << " processes from " << displayFile << endl;  
-    // UPDATED MENU
+    // ask user which algorithm to run
     cout << "\nWhich scheduling algorithm?" << endl;
     cout << "1. FIFO" << endl;
     cout << "2. SJF" << endl;
