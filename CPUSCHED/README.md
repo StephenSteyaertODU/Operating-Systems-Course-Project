@@ -54,6 +54,14 @@ Make sure the file is inside the /data directory.
 
 ---
 
+### Output File Behavior
+
+When generating output files (`FIFOresults.txt` and/or `SJFresults.txt`), the program automatically handles file creation and overwriting.
+
+- If the output file does not exist, it will be created
+- If the output file already exists, it will be cleared and overwritten with the new results
+
+
 ### Output Files
 
 The output file(s) generated depend on the scheduling algorithm selected:
