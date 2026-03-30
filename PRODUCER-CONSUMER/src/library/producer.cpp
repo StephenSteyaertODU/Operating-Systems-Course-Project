@@ -1,6 +1,7 @@
 #include "producer.hpp"
 
-Producer::Producer(int store_id, SharedBuffer& buffer, std::atomic<int>& total_produced,
+Producer::Producer(int store_id, SharedBuffer& buffer, 
+                   std::atomic<int>& total_produced,
                    int total_items)
     : store_id_(store_id)
     , buffer_(buffer)
@@ -38,6 +39,7 @@ void Producer::run() {
         buffer_.produce(generateRecord());
 
         // Sleep between 5–40 ms before producing the next record
-        std::this_thread::sleep_for(std::chrono::milliseconds(sleep_dist(rng_)));
+        std::this_thread::sleep_for(std::chrono::milliseconds(
+            sleep_dist(rng_)));
     }
 }

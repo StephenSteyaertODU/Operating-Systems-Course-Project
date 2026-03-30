@@ -3,7 +3,8 @@
 #include "common/common.hpp"
 
 /// Convenience alias — semaphore with the platform's maximum count
-using Semaphore = std::counting_semaphore<std::numeric_limits<std::ptrdiff_t>::max()>;
+using Semaphore = std::counting_semaphore
+                    <std::numeric_limits<std::ptrdiff_t>::max()>;
 
 /**
  * @brief Thread-safe circular buffer shared between producer and consumer threads.

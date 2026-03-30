@@ -1,8 +1,8 @@
 #include "consumer.hpp"
 
-Consumer::Consumer(int id, int num_stores, SharedBuffer& buffer, GlobalStats& global_stats)
-    : id_(id)
-    , buffer_(buffer)
+Consumer::Consumer(int id, int num_stores, SharedBuffer& buffer, 
+    GlobalStats& global_stats)
+    : buffer_(buffer)
     , global_stats_(global_stats)
     , local_stats_(id, num_stores)
 {}

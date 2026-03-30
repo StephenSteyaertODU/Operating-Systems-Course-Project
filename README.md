@@ -41,7 +41,7 @@ course-project/
 ├── build/                     # CMake build directory (generated)
 ├── CMakeLists.txt             # Root CMake configuration
 ├── README.md                  # This file
-└── video.mp4                  # Our video recording to be added later
+└── Operating-Systems-Course-Project.mp4 # Our video
 ```
 
 ## Building

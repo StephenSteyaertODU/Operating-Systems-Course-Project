@@ -60,7 +60,6 @@ public:
     const LocalStats& localStats() const;
 
 private:
-    int           id_;           ///< 1-based consumer ID
     SharedBuffer& buffer_;       ///< Shared buffer (not owned)
     GlobalStats&  global_stats_; ///< Shared global statistics (not owned)
     LocalStats    local_stats_;  ///< Thread-local stats (owned by this consumer)
